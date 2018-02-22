@@ -511,7 +511,7 @@ namespace OCL
         // check for duplicates:
         for (Reports::iterator it = root.begin();
              it != root.end(); ++it)
-            if ( it->get<T_QualName>() == tag ) {
+            if ( it->qualified_name == tag ) {
                 return true;
             }
 
@@ -523,7 +523,7 @@ namespace OCL
             return false;
         }
         PropertyBase* prop = 0;
-        root.push_back( boost::make_tuple( tag, orig, type, prop, ipi, false, track ) );
+        root.push_back( ReportMetadata( tag, orig, type, prop, ipi, false, track ) );
         return true;
     }
 
@@ -531,7 +531,7 @@ namespace OCL
     {
         for (Reports::iterator it = root.begin();
              it != root.end(); ++it)
-            if ( it->get<T_QualName>() == tag ) {
+            if ( it->qualified_name == tag ) {
                 root.erase(it);
                 return true;
             }
@@ -574,11 +574,11 @@ namespace OCL
         // Turn off port triggering in snapshot mode, and vice versa.
         // Also clears any old data in the buffers
         for(Reports::iterator it = root.begin(); it != root.end(); ++it )
-            if ( it->get<T_Port>() ) {
+            if ( it->port ) {
 #ifndef ORO_SIGNALLING_PORTS
-                it->get<T_Port>()->signalInterface( !insnapshot.get() );
+                it->port->signalInterface( !insnapshot.get() );
 #endif
-                it->get<T_Port>()->clear();
+                it->port->clear();
             }
 
 
@@ -601,9 +601,9 @@ namespace OCL
         bool result = false;
         // This evaluates the InputPortDataSource evaluate() returns true upon new data.
         for(Reports::iterator it = root.begin(); it != root.end(); ++it ) {
-            it->get<T_NewData>() = (it->get<T_PortDS>())->evaluate(); // stores 'NewData' flag.
+            it->new_data = (it->port_ds)->evaluate(); // stores 'NewData' flag.
             // if its a property/attr, get<T_NewData> will always be true, so we override (clear) with get<T_Tracked>.
-            result = result || ( it->get<T_NewData>() && it->get<T_Tracked>() );
+            result = result || ( it->new_data && it->tracked );
         }
         return result;
     }
@@ -616,21 +616,21 @@ namespace OCL
         report.add( timestamp.getTypeInfo()->buildProperty( timestamp.getName(), "", timestamp.getDataSource() ) );
         DataSource<bool>::shared_ptr checker;
         for(Reports::iterator it = root.begin(); it != root.end(); ++it ) {
-            Property<PropertyBag>* subbag = new Property<PropertyBag>( it->get<T_QualName>(), "");
-            if ( decompose.get() && memberDecomposition( it->get<T_PortDS>(), subbag->value(), checker ) ) {
+            Property<PropertyBag>* subbag = new Property<PropertyBag>( it->qualified_name, "");
+            if ( decompose.get() && memberDecomposition( it->port_ds, subbag->value(), checker ) ) {
                 report.add( subbag );
-                it->get<T_Property>() = subbag;
+                it->property = subbag;
             } else {
                 // property or simple value port...
-                base::DataSourceBase::shared_ptr converted = it->get<T_PortDS>()->getTypeInfo()->convertType( it->get<T_PortDS>() );
-                if ( converted && converted != it->get<T_PortDS>() ) {
+                base::DataSourceBase::shared_ptr converted = it->port_ds->getTypeInfo()->convertType( it->port_ds );
+                if ( converted && converted != it->port_ds ) {
                     // converted contains another type.
-                    PropertyBase* convProp = converted->getTypeInfo()->buildProperty(it->get<T_QualName>(), "", converted);
-                    it->get<T_Property>() = convProp;
+                    PropertyBase* convProp = converted->getTypeInfo()->buildProperty(it->qualified_name, "", converted);
+                    it->property = convProp;
                     report.add(convProp);
                 } else {
-                    PropertyBase* origProp = it->get<T_PortDS>()->getTypeInfo()->buildProperty(it->get<T_QualName>(), "", it->get<T_PortDS>());
-                    it->get<T_Property>() = origProp;
+                    PropertyBase* origProp = it->port_ds->getTypeInfo()->buildProperty(it->qualified_name, "", it->port_ds);
+                    it->property = origProp;
                     report.add(origProp);
                 }
                 delete subbag;
@@ -672,8 +672,8 @@ namespace OCL
                          i != root.end();
                          i++ )
                         {
-                            if ( i->get<T_NewData>() )
-                                it->second->serialize( i->get<T_Property>() );
+                            if ( i->new_data )
+                                it->second->serialize( i->property );
                         }
                 } else {
                     // pass on all ports to the marshaller

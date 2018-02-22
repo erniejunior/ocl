@@ -199,55 +199,75 @@ namespace OCL
          * to be rescanned, while props and attrs never cause this (they always have newdata,
          * but this is ignored).
          */
-        typedef boost::tuple<std::string,
-                             RTT::base::DataSourceBase::shared_ptr,
-                             std::string,RTT::base::PropertyBase*,RTT::base::InputPortInterface*,bool,bool> DTupple;
+     class ReportMetadata {
+      public:
+       ReportMetadata(std::string qualified_name,
+                      RTT::base::DataSourceBase::shared_ptr port_ds,
+                      std::string data_type, RTT::base::PropertyBase* property,
+                      RTT::base::InputPortInterface* port, bool new_data,
+                      bool tracked)
+           : qualified_name(qualified_name),
+             port_ds(port_ds),
+             property(property),
+             port(port),
+             new_data(new_data),
+             tracked(tracked) {}
+       std::string qualified_name;
+       RTT::base::DataSourceBase::shared_ptr port_ds;
+       std::string data_type;
+       RTT::base::PropertyBase* property;
+       RTT::base::InputPortInterface* port;
+       bool new_data;
+       bool tracked;
+     };
+     /**
+      * Stores the 'datasource' of all reported items as properties.
+      */
+     typedef std::vector<ReportMetadata> Reports;
+     Reports root;
 
-        //! Use these to index DTupple objects.
-        typedef enum { T_QualName = 0, T_PortDS, T_DataType, T_Property, T_Port, T_NewData, T_Tracked } T_Types;
-        /**
-         * Stores the 'datasource' of all reported items as properties.
-         */
-        typedef std::vector<DTupple> Reports;
-        Reports root;
+     bool reportDataSource(std::string tag, std::string type,
+                           RTT::base::DataSourceBase::shared_ptr origm,
+                           RTT::base::InputPortInterface* ipi, bool);
 
-        bool reportDataSource(std::string tag, std::string type, RTT::base::DataSourceBase::shared_ptr origm, RTT::base::InputPortInterface* ipi, bool);
+     bool unreportDataSource(std::string tag);
 
-        bool unreportDataSource(std::string tag);
+     virtual bool startHook();
 
-        virtual bool startHook();
+     void makeReport2();
 
-        void makeReport2();
+     /**
+      * This not real-time function processes the copied data.
+      */
+     virtual void updateHook();
 
-        /**
-         * This not real-time function processes the copied data.
-         */
-        virtual void updateHook();
+     virtual void stopHook();
 
-        virtual void stopHook();
+     typedef std::vector<
+         std::pair<boost::shared_ptr<RTT::marsh::MarshallInterface>,
+                   boost::shared_ptr<RTT::marsh::MarshallInterface> > >
+         Marshallers;
+     Marshallers marshallers;
+     RTT::PropertyBag report;
 
-        typedef std::vector< std::pair<boost::shared_ptr<RTT::marsh::MarshallInterface>, boost::shared_ptr<RTT::marsh::MarshallInterface> > > Marshallers;
-        Marshallers marshallers;
-        RTT::PropertyBag report;
+     /**
+      * Used to communicate between snapshot() and updateHook()
+      * if updateHook needs to make a copy.
+      */
+     bool snapshotted;
+     RTT::Property<std::string> config;
+     RTT::Property<bool> writeHeader;
+     RTT::Property<bool> decompose;
+     RTT::Property<bool> insnapshot;
+     RTT::Property<bool> synchronize_with_logging;
+     RTT::Property<PropertyBag> report_data;
+     RTT::ConnPolicy report_policy;
+     bool onlyNewData;
 
-        /**
-         * Used to communicate between snapshot() and updateHook()
-         * if updateHook needs to make a copy.
-         */
-        bool snapshotted;
-        RTT::Property<std::string>   config;
-        RTT::Property<bool>          writeHeader;
-        RTT::Property<bool>          decompose;
-        RTT::Property<bool>          insnapshot;
-        RTT::Property<bool>          synchronize_with_logging;
-        RTT::Property<PropertyBag>   report_data;
-        RTT::ConnPolicy              report_policy;
-        bool                         onlyNewData;
-
-        RTT::os::TimeService::ticks starttime;
-        RTT::Property<RTT::os::TimeService::Seconds> timestamp;
-        //! If false, a sequence size has changed.
-        RTT::internal::DataSource<bool>::shared_ptr mchecker;
+     RTT::os::TimeService::ticks starttime;
+     RTT::Property<RTT::os::TimeService::Seconds> timestamp;
+     //! If false, a sequence size has changed.
+     RTT::internal::DataSource<bool>::shared_ptr mchecker;
 
     };
 
