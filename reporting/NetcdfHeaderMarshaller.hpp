@@ -37,6 +37,14 @@ class NetcdfHeaderMarshaller : public marsh::MarshallInterface {
 
   virtual void serialize(const PropertyBag& v) {
     log(Error) << "Header: " << v.getType() << endlog();
+    serializeBag(v);
+  }
+
+  void serializeBag(const PropertyBag& v, Property<double>* parent_timestamp = NULL) {
+      for(int i = 0; i < v.size(); i++) {
+          base::PropertyBase* prop = v.getItem(i);
+
+      }
   }
 
   virtual void flush() {}
